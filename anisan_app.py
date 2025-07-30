@@ -1,5 +1,44 @@
 import streamlit as st
 import streamlit as st
+import streamlit as st
+
+# Dictionnaire des pays et régions
+countries_regions = {
+    "Niger": [
+        "Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
+        "Tahoua", "Tillabéri", "Zinder"
+    ],
+    "Sénégal": [
+        "Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
+        "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
+        "Tambacounda", "Thiès", "Ziguinchor"
+    ]
+}
+
+# Fonction déclenchée quand le pays change
+def on_country_change():
+    st.session_state.region = countries_regions[st.session_state.country][0]
+
+# Initialisation
+if "country" not in st.session_state:
+    st.session_state.country = "Niger"
+if "region" not in st.session_state:
+    st.session_state.region = countries_regions[st.session_state.country][0]
+
+# Choix du pays
+st.selectbox(
+    "Sélectionnez le pays",
+    list(countries_regions.keys()),
+    key="country",
+    on_change=on_country_change
+)
+
+# Choix de la région en fonction du pays sélectionné
+st.selectbox(
+    "Sélectionnez la région",
+    countries_regions[st.session_state.country],
+    key="region"
+)
 
 # Dictionnaire des pays et régions
 countries_regions = {
