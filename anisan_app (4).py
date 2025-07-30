@@ -1,3 +1,23 @@
+import streamlit as st
+
+# Dictionnaire des pays avec leurs régions
+countries_regions = {
+    "Niger": [
+        "Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
+        "Tahoua", "Tillabéri", "Zinder"
+    ],
+    "Sénégal": [
+        "Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
+        "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
+        "Tambacounda", "Thiès", "Ziguinchor"
+    ]
+}
+
+# Sélection du pays
+selected_country = st.selectbox("Sélectionnez le pays", list(countries_regions.keys()))
+
+# Sélection de la région en fonction du pays
+selected_region = st.selectbox("Sélectionnez la région", countries_regions[selected_country])
 
 import streamlit as st
 import pandas as pd
