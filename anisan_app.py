@@ -7,42 +7,57 @@ from datetime import date
 
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
-# Dictionnaire des pays et régions
-countries_regions = {
-    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
-              "Tahoua", "Tillabéri", "Zinder"],
-    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
-                "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
-                "Tambacounda", "Thiès", "Ziguinchor"]
-}
-
-# Initialisation du state
-if 'country' not in st.session_state:
-    st.session_state.country = 'Niger'
-if 'region' not in st.session_state:
-    st.session_state.region = countries_regions[st.session_state.country][0]
-
-def on_country_change():
-    st.session_state.region = countries_regions[st.session_state.country][0]
-
 st.title("🍼 ANISAN - Suivi Nutritionnel des Enfants au Sahel et en Afrique de l'Ouest")
 
-# Sélection du pays et région
-st.selectbox(
-    "Sélectionnez le pays",
-    options=list(countries_regions.keys()),
-    key='country',
-    on_change=on_country_change
-)
-st.selectbox(
-    "Sélectionnez la région",
-    options=countries_regions[st.session_state.country],
-    key='region'
-)
+# --- FONCTIONS UTILES ---
 
-# Initialisation enfants
+def calc_phase(pb, oedeme):
+    """Calcule la phase nutritionnelle et couleur selon PB et œdème"""
+    if oedeme == "Oui" or pb < 11.5:
+        return "MAS (Aiguë sévère)", "🔴🔴"
+    elif 11.5 <= pb < 12.5:
+        return "MAM (Aiguë modérée)", "🟠"
+    elif 12.5 <= pb < 12.9:
+        return "Stress nutritionnel", "🟡"
+    else:
+        return "Phase minimale", "🟢"
+
+def analyse_alertes(enfants):
+    """Analyse les enfants enregistrés et génère des alertes par région"""
+    alertes = []
+    if not enfants:
+        return alertes
+
+    df = pd.DataFrame(enfants)
+    regions = df["Région"].unique()
+    for region in regions:
+        df_region = df[df["Région"] == region]
+        total = len(df_region)
+        mas_count = df_region["Phase nutritionnelle"].str.contains("MAS").sum()
+        mas_pct = (mas_count / total) * 100
+
+        # Seuil d'alerte : MAS > 5%
+        if mas_pct > 5:
+            alertes.append(f"⚠️ Alerte nutritionnelle : {mas_pct:.1f}% MAS à {region} ! Intervention urgente requise.")
+    return alertes
+
+# --- INITIALISATION DES ENFANTS ---
+
 if "enfants" not in st.session_state:
     st.session_state["enfants"] = []
+
+# --- AFFICHAGE DES ALERTES ---
+
+alertes = analyse_alertes(st.session_state["enfants"])
+if alertes:
+    for alerte in alertes:
+        st.error(alerte)
+else:
+    st.success("✅ Pas d’alerte nutritionnelle majeure détectée.")
+
+# --- FORMULAIRE D’ENREGISTREMENT ---
+
+regions = ["Ziguinchor", "Dakar", "Thiès", "Kolda", "Saint-Louis", "Tambacounda", "Matam", "Kaolack"]
 
 st.markdown("## ➕ Ajouter un nouvel enfant")
 
@@ -52,8 +67,7 @@ with st.form("formulaire_enfant"):
         nom = st.text_input("Nom de l’enfant")
         sexe = st.selectbox("Sexe", ["M", "F"])
         age = st.number_input("Âge (en mois)", min_value=0, max_value=120, step=1)
-        region = st.session_state.region
-        st.text(f"Région sélectionnée : {region}")
+        region = st.selectbox("Région", regions)
     with col2:
         poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
         taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
@@ -64,19 +78,7 @@ with st.form("formulaire_enfant"):
     submitted = st.form_submit_button("📨 Enregistrer")
 
 if submitted:
-    if oedeme == "Oui" or pb < 11.5:
-        phase = "MAS (Aiguë sévère)"
-        couleur = "🔴🔴"
-    elif 11.5 <= pb < 12.5:
-        phase = "MAM (Aiguë modérée)"
-        couleur = "🟠"
-    elif 12.5 <= pb < 12.9:
-        phase = "Stress nutritionnel"
-        couleur = "🟡"
-    else:
-        phase = "Phase minimale"
-        couleur = "🟢"
-
+    phase, couleur = calc_phase(pb, oedeme)
     enfant = {
         "Nom": nom,
         "Sexe": sexe,
@@ -91,8 +93,10 @@ if submitted:
     }
     st.session_state["enfants"].append(enfant)
     st.success("✅ Données enregistrées avec succès !")
+    st.experimental_rerun()  # Recharger pour mise à jour alertes et tableau
 
-# Analyse et visualisation
+# --- ANALYSE ET VISUALISATION ---
+
 st.markdown("## 📊 Statistiques Nutritionnelles")
 
 if st.session_state["enfants"]:
@@ -148,12 +152,14 @@ if st.session_state["enfants"]:
         if st.button(f"🗑️ Supprimer {enfant['Nom']}", key=f"delete_{i}"):
             st.session_state["enfants"].pop(i)
             st.experimental_rerun()
+
 else:
     st.info("Aucun enfant enregistré pour l’instant.")
 
-# Export
+# --- EXPORT CSV ---
+
 st.markdown("## 📥 Exporter les données")
 if st.session_state["enfants"]:
     df = pd.DataFrame(st.session_state["enfants"])
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📄 Télécharger CSV", csv, "enfants_anisan.csv", mime="text/csv")
+    csv = df.to_csv(index=False, sep=';').encode("utf-8")  # Séparateur ';' pour Excel francophone
+    st.download_button("📄 Télécharger CSV (Excel compatible)", csv, "enfants_anisan.csv", mime="text/csv")
