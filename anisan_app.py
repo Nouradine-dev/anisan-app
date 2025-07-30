@@ -1,7 +1,8 @@
 import streamlit as st
 
 st.set_page_config(page_title="ANISAN", layout="centered")
-
+if "enfants" not in st.session_state:
+    st.session_state["enfants"] = []
 st.title("🟢 ANISAN – Système de Suivi Nutritionnel")
 st.subheader("Application de Nutrition et de Suivi Alimentaire National")
 st.markdown("---")
