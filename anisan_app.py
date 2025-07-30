@@ -49,8 +49,6 @@ countries_regions = {
 }
 
 # Sélection du pays
-selected_country = st.selectbox("Sélectionnez le pays", list(countries_regions.keys()))
-
 # Sélection de la région en fonction du pays
 selected_region = st.selectbox("Sélectionnez la région", countries_regions[selected_country])
 
