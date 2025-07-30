@@ -1,58 +1,4 @@
 import streamlit as st
-import streamlit as st
-
-# Dictionnaire des pays et régions
-countries_regions = {
-    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
-              "Tahoua", "Tillabéri", "Zinder"],
-    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
-                "Kolda", "Louga", "Matam", "Saint‑Louis", "Sédhiou",
-                "Tambacounda", "Thiès", "Ziguinchor"]
-}
-
-# Initialisation session state
-if 'country' not in st.session_state:
-    st.session_state.country = 'Niger'
-if 'region' not in st.session_state:
-    st.session_state.region = countries_regions[st.session_state.country][0]
-
-def on_country_change():
-    # Met à jour la région dès que le pays change
-    st.session_state.region = countries_regions[st.session_state.country][0]
-
-# Sélecteur de pays
-st.selectbox(
-    "Sélectionnez le pays",
-    options=list(countries_regions.keys()),
-    key='country',
-    on_change=on_country_change
-)
-
-# Sélecteur de région dynamique
-st.selectbox(
-    "Sélectionnez la région",
-    options=countries_regions[st.session_state.country],
-    key='region'
-)
-
-# Dictionnaire des pays avec leurs régions
-countries_regions = {
-    "Niger": [
-        "Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
-        "Tahoua", "Tillabéri", "Zinder"
-    ],
-    "Sénégal": [
-        "Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
-        "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
-        "Tambacounda", "Thiès", "Ziguinchor"
-    ]
-}
-
-# Sélection du pays
-# Sélection de la région en fonction du pays
-selected_region = st.selectbox("Sélectionnez la région", countries_regions[selected_country])
-
-import streamlit as st
 import pandas as pd
 import numpy as np
 import folium
@@ -61,13 +7,42 @@ from datetime import date
 
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
+# Dictionnaire des pays et régions
+countries_regions = {
+    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
+              "Tahoua", "Tillabéri", "Zinder"],
+    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
+                "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
+                "Tambacounda", "Thiès", "Ziguinchor"]
+}
+
+# Initialisation du state
+if 'country' not in st.session_state:
+    st.session_state.country = 'Niger'
+if 'region' not in st.session_state:
+    st.session_state.region = countries_regions[st.session_state.country][0]
+
+def on_country_change():
+    st.session_state.region = countries_regions[st.session_state.country][0]
+
 st.title("🍼 ANISAN - Suivi Nutritionnel des Enfants au Sahel et en Afrique de l'Ouest")
 
-# Initialisation
+# Sélection du pays et région
+st.selectbox(
+    "Sélectionnez le pays",
+    options=list(countries_regions.keys()),
+    key='country',
+    on_change=on_country_change
+)
+st.selectbox(
+    "Sélectionnez la région",
+    options=countries_regions[st.session_state.country],
+    key='region'
+)
+
+# Initialisation enfants
 if "enfants" not in st.session_state:
     st.session_state["enfants"] = []
-
-regions = ["Ziguinchor", "Dakar", "Thiès", "Kolda", "Saint-Louis", "Tambacounda", "Matam", "Kaolack"]
 
 st.markdown("## ➕ Ajouter un nouvel enfant")
 
@@ -77,7 +52,8 @@ with st.form("formulaire_enfant"):
         nom = st.text_input("Nom de l’enfant")
         sexe = st.selectbox("Sexe", ["M", "F"])
         age = st.number_input("Âge (en mois)", min_value=0, max_value=120, step=1)
-        region = st.selectbox("Région", regions)
+        region = st.session_state.region
+        st.text(f"Région sélectionnée : {region}")
     with col2:
         poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
         taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
@@ -172,10 +148,10 @@ if st.session_state["enfants"]:
         if st.button(f"🗑️ Supprimer {enfant['Nom']}", key=f"delete_{i}"):
             st.session_state["enfants"].pop(i)
             st.experimental_rerun()
-
 else:
     st.info("Aucun enfant enregistré pour l’instant.")
 
+# Export
 st.markdown("## 📥 Exporter les données")
 if st.session_state["enfants"]:
     df = pd.DataFrame(st.session_state["enfants"])
