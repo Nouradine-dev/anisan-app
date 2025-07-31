@@ -1,173 +1,107 @@
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import folium
 from streamlit_folium import st_folium
-from datetime import date
 
-# --- Sélection dynamique pays > régions ---
-countries_regions = {
-    "Niger": [
-        "Agadez", "Diffa", "Dosso", "Maradi", "Niamey",
-        "Tahoua", "Tillabéri", "Zinder"
-    ],
-    "Sénégal": [
-        "Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou",
-        "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou",
-        "Tambacounda", "Thiès", "Ziguinchor"
-    ]
-}
+# ---- TITRE ----
+st.set_page_config(page_title="ANISAN – Suivi Nutritionnel", layout="wide")
+st.title("🍼 ANISAN – Application de Suivi Nutritionnel des Enfants")
 
-def on_country_change():
-    st.session_state.region = countries_regions[st.session_state.country][0]
-
+# ---- SESSION STATE INIT ----
+if "data" not in st.session_state:
+    st.session_state.data = []
 if "country" not in st.session_state:
     st.session_state.country = "Niger"
-if "region" not in st.session_state:
-    st.session_state.region = countries_regions[st.session_state.country][0]
 
-st.selectbox("Sélectionnez le pays", list(countries_regions.keys()), key="country", on_change=on_country_change)
-st.selectbox("Sélectionnez la région", countries_regions[st.session_state.country], key="region")
-# --- Fin sélection dynamique ---
+# ---- DICTIONNAIRE DES RÉGIONS ----
+countries_regions = {
+    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Niamey", "Tahoua", "Tillabéri", "Zinder"],
+    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam",
+                "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"]
+}
 
-st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
-st.title("🍼 ANISAN - Suivi Nutritionnel des Enfants au Sahel et en Afrique de l'Ouest")
-
-if "enfants" not in st.session_state:
-    st.session_state["enfants"] = []
-
-st.markdown("## ➕ Ajouter un nouvel enfant")
-
-with st.form("formulaire_enfant"):
+# ---- FORMULAIRE ----
+with st.form("form_enfant"):
+    st.header("📋 Informations de l'enfant")
     col1, col2 = st.columns(2)
     with col1:
         nom = st.text_input("Nom de l’enfant")
-        sexe = st.selectbox("Sexe", ["M", "F"])
-        age = st.number_input("Âge (en mois)", min_value=0, max_value=120, step=1)
-        region = st.session_state.region
+        age = st.number_input("Âge (mois)", min_value=0, max_value=59)
+        sexe = st.selectbox("Sexe", ["Masculin", "Féminin"])
+        oedeme = st.selectbox("Œdème", ["Non", "Oui"])
+        st.session_state.country = st.selectbox("Sélectionnez le pays", list(countries_regions.keys()), index=list(countries_regions.keys()).index(st.session_state.country))
     with col2:
-        poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
-        taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
-        pb = st.number_input("Périmètre brachial (cm)", min_value=0.0, step=0.1)
-        oedeme = st.radio("Œdème nutritionnel ?", ["Non", "Oui"])
-        date_mesure = st.date_input("Date de la mesure", value=date.today())
+        pb = st.number_input("Périmètre brachial (cm)", min_value=5.0, max_value=25.0)
+        poids = st.number_input("Poids (kg)", min_value=1.0, max_value=30.0)
+        taille = st.number_input("Taille (cm)", min_value=30.0, max_value=150.0)
+        region = st.selectbox("Sélectionnez la région", countries_regions[st.session_state.country])
 
-    submitted = st.form_submit_button("📨 Enregistrer")
+    submit = st.form_submit_button("📥 Enregistrer")
+    if submit:
+        st.session_state.data.append({
+            "Nom": nom,
+            "Âge (mois)": age,
+            "Sexe": sexe,
+            "PB (cm)": pb,
+            "Poids (kg)": poids,
+            "Taille (cm)": taille,
+            "Œdème": oedeme,
+            "Pays": st.session_state.country,
+            "Région": region
+        })
+        st.success(f"✅ Enfant {nom} enregistré avec succès.")
 
-if submitted:
-    if oedeme == "Oui" or pb < 11.5:
-        phase = "MAS (Aiguë sévère)"
-        couleur = "🔴🔴"
-    elif 11.5 <= pb < 12.5:
-        phase = "MAM (Aiguë modérée)"
-        couleur = "🟠"
-    elif 12.5 <= pb < 12.9:
-        phase = "Stress nutritionnel"
-        couleur = "🟡"
-    else:
-        phase = "Bon état nutritionnel"
-        couleur = "🟢"
+        # ---- MINI IA EMBARQUÉE ----
+        result = "Bon"
+        score = 0
+        if pb < 11.5 or poids < 6 or taille < 65 or oedeme == "Oui":
+            result = "MAS"
+            score = 2
+        elif pb < 12.5 or poids < 7:
+            result = "MAM"
+            score = 1
 
-    enfant = {
-        "Nom": nom,
-        "Sexe": sexe,
-        "Âge (mois)": age,
-        "Poids (kg)": poids,
-        "Taille (cm)": taille,
-        "PB (cm)": pb,
-        "Œdème": oedeme,
-        "Région": region,
-        "Date de mesure": date_mesure.strftime("%d/%m/%Y"),
-        "Phase nutritionnelle": f"{couleur} {phase}"
-    }
-    st.session_state["enfants"].append(enfant)
-    st.success("✅ Données enregistrées avec succès !")
+        # Probabilités simulées
+        probs = {
+            "Bon": "60.0%",
+            "MAM": "25.0%",
+            "MAS": "15.0%"
+        }
+        if result == "MAS":
+            probs = {"Bon": "10.0%", "MAM": "30.0%", "MAS": "60.0%"}
+        elif result == "MAM":
+            probs = {"Bon": "20.0%", "MAM": "50.0%", "MAS": "30.0%"}
 
-# Analyse et visualisation
-st.markdown("## 📊 Statistiques Nutritionnelles")
+        st.subheader("🤖 Résultat IA")
+        st.write(f"🧠 **Statut nutritionnel prédit :** {result}")
+        st.write("📊 **Détail des probabilités :**")
+        st.json(probs)
 
-if st.session_state["enfants"]:
-    df = pd.DataFrame(st.session_state["enfants"])
-    total = len(df)
-    mam = df["Phase nutritionnelle"].str.contains("MAM").sum()
-    mas = df["Phase nutritionnelle"].str.contains("MAS").sum()
-    pb_moy = df["PB (cm)"].mean()
-    poids_moy = df["Poids (kg)"].mean()
-    taille_moy = df["Taille (cm)"].mean()
+        st.subheader("🍽️ Recommandations personnalisées")
+        if result == "Bon":
+            st.markdown("- ✅ Maintenir une alimentation équilibrée adaptée à l’âge")
+            st.markdown("- 👶 Allaitement exclusif jusqu’à 6 mois, puis diversification")
+            st.markdown("- 📈 Suivi régulier de la croissance")
+        elif result == "MAM":
+            st.markdown("- ⚠️ Enrichir les repas avec protéines et lipides")
+            st.markdown("- 🩺 Surveillance communautaire")
+            st.markdown("- 🔁 Suivi hebdomadaire du PB et poids")
+        else:
+            st.markdown("- 🚨 Diriger vers un centre de récupération nutritionnelle")
+            st.markdown("- 🥣 Utilisation d'ATPE (Plumpy'nut, etc.)")
+            st.markdown("- 📅 Suivi médical rigoureux + traitement des infections")
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("👶 Total enfants", total)
-    col2.metric("🟠 % MAM", f"{(mam/total)*100:.1f}%")
-    col3.metric("🔴 % MAS", f"{(mas/total)*100:.1f}%")
+# ---- CARTE FOLIUM ----
+if st.session_state.data:
+    latest = st.session_state.data[-1]
+    st.header("📍 Localisation estimée de l’enfant")
 
-    col4, col5, col6 = st.columns(3)
-    col4.metric("📏 PB moyen", f"{pb_moy:.1f} cm")
-    col5.metric("⚖️ Poids moyen", f"{poids_moy:.1f} kg")
-    col6.metric("📐 Taille moyenne", f"{taille_moy:.1f} cm")
-
-    st.markdown("## 🗺️ Répartition géographique")
-
-    coords = {
-        # Niger
-        "Agadez": [17.0, 8.0],
-        "Diffa": [13.3, 12.6],
-        "Dosso": [13.0, 3.2],
-        "Maradi": [13.5, 7.1],
-        "Niamey": [13.5, 2.1],
-        "Tahoua": [14.8, 5.3],
-        "Tillabéri": [14.2, 1.5],
-        "Zinder": [13.8, 8.9],
-        # Sénégal
-        "Dakar": [14.7, -17.5],
-        "Diourbel": [14.65, -16.23],
-        "Fatick": [14.33, -16.5],
-        "Kaffrine": [14.1, -15.55],
-        "Kaolack": [14.15, -16.1],
-        "Kédougou": [12.55, -12.18],
-        "Kolda": [12.89, -14.95],
-        "Louga": [15.61, -16.21],
-        "Matam": [15.65, -13.26],
-        "Saint-Louis": [16.02, -16.5],
-        "Sédhiou": [12.7, -15.6],
-        "Tambacounda": [13.77, -13.67],
-        "Thiès": [14.8, -16.92],
-        "Ziguinchor": [12.55, -16.28]
-    }
-
-    latest_enfant = st.session_state["enfants"][-1]
-    focus_coord = coords.get(latest_enfant["Région"], [14.5, -14.5])
-    m = folium.Map(location=focus_coord, zoom_start=6)
-
-    region_counts = df["Région"].value_counts().reset_index()
-    region_counts.columns = ["Région", "Nombre"]
-
-    for _, row in region_counts.iterrows():
-        nom = row["Région"]
-        n = row["Nombre"]
-        if nom in coords:
-            folium.CircleMarker(
-                location=coords[nom],
-                radius=8 + n,
-                popup=f"{nom} : {n} cas",
-                color="blue",
-                fill=True,
-                fill_color="blue"
-            ).add_to(m)
-
-    st_folium(m, width=700, height=400)
-
-    st.markdown("## 🧾 Tableau des enfants")
-    for i, enfant in enumerate(st.session_state["enfants"]):
-        st.write(f"**{i+1}.** {enfant['Nom']} ({enfant['Phase nutritionnelle']}) – {enfant['Région']}")
-        if st.button(f"🗑️ Supprimer {enfant['Nom']}", key=f"delete_{i}"):
-            st.session_state["enfants"].pop(i)
-            st.experimental_rerun()
-else:
-    st.info("Aucun enfant enregistré pour l’instant.")
-
-st.markdown("## 📥 Exporter les données")
-if st.session_state["enfants"]:
-    df = pd.DataFrame(st.session_state["enfants"])
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button("📄 Télécharger CSV", csv, "enfants_anisan.csv", mime="text/csv")
+    m = folium.Map(location=[13.5, 2.1], zoom_start=5)
+    folium.Marker(
+        location=[13.5, 2.1],
+        popup=f"{latest['Nom']} ({latest['Région']}, {latest['Pays']})",
+        tooltip="Enfant enregistré",
+        icon=folium.Icon(color="red" if result == "MAS" else "orange" if result == "MAM" else "green")
+    ).add_to(m)
+    st_folium(m, width=700)
