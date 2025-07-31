@@ -1,15 +1,17 @@
-
 import streamlit as st
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
-# Modèle IA intégré (sans pickle)
+# Entraînement modèle IA
 model = RandomForestClassifier(n_estimators=100, random_state=42)
-X = [[6.0, 5.2, 60.0, 11.2, 0.0, 1.0], [12.0, 7.8, 72.0, 13.4, 0.0, 0.0], [24.0, 10.5, 85.0, 14.1, 0.0, 1.0], [18.0, 8.0, 75.0, 12.0, 1.0, 1.0], [36.0, 12.0, 90.0, 15.0, 0.0, 0.0], [9.0, 6.0, 65.0, 11.0, 1.0, 1.0], [30.0, 11.0, 88.0, 14.0, 0.0, 0.0], [15.0, 7.5, 70.0, 12.5, 1.0, 0.0], [21.0, 9.0, 78.0, 13.0, 0.0, 1.0], [27.0, 10.0, 83.0, 13.5, 0.0, 1.0]]
+X = [[6.0, 5.2, 60.0, 11.2, 0.0, 1.0], [12.0, 7.8, 72.0, 13.4, 0.0, 0.0], 
+     [24.0, 10.5, 85.0, 14.1, 0.0, 1.0], [18.0, 8.0, 75.0, 12.0, 1.0, 1.0], 
+     [36.0, 12.0, 90.0, 15.0, 0.0, 0.0], [9.0, 6.0, 65.0, 11.0, 1.0, 1.0], 
+     [30.0, 11.0, 88.0, 14.0, 0.0, 0.0], [15.0, 7.5, 70.0, 12.5, 1.0, 0.0], 
+     [21.0, 9.0, 78.0, 13.0, 0.0, 1.0], [27.0, 10.0, 83.0, 13.5, 0.0, 1.0]]
 y = [2, 0, 0, 1, 0, 2, 0, 1, 1, 0]
 model.fit(X, y)
 
-# Fonction prédiction + recommandations
 def predire_nutrition(age, poids, taille, pb, oedeme, sexe):
     data = np.array([[age, poids, taille, pb, oedeme, sexe]])
     prediction = model.predict(data)[0]
@@ -41,7 +43,6 @@ def predire_nutrition(age, poids, taille, pb, oedeme, sexe):
 
     return phases[prediction], probabilites, recommandations[prediction]
 
-# Interface utilisateur
 st.set_page_config(page_title="Prédiction nutritionnelle IA", page_icon="🧠")
 st.title("🔬 Module IA - Prédiction nutritionnelle intégrée")
 
@@ -63,26 +64,28 @@ oedeme_val = 1 if oedeme == "Oui" else 0
 sexe_val = 1 if sexe == "Garçon" else 0
 
 if st.button("📊 Lancer la prédiction"):
-    (label, description), probs, conseils = predire_nutrition(age, poids, taille, pb, oedeme_val, sexe_val)
+    try:
+        (label, description), probs, conseils = predire_nutrition(age, poids, taille, pb, oedeme_val, sexe_val)
 
-    st.success(f"**Résultat : {label}**")
-    st.caption(f"{description}")
+        st.success(f"**Résultat : {label}**")
+        st.caption(f"{description}")
 
-    st.markdown("### 📈 Probabilités estimées par l’IA :")
-    st.write({
-        "Bon": f"{probs[0]*100:.1f}%",
-        "MAM": f"{probs[1]*100:.1f}%",
-        "MAS": f"{probs[2]*100:.1f}%"
-    })
+        st.markdown("### 📈 Probabilités estimées par l’IA :")
+        st.write({
+            "Bon": f"{probs[0]*100:.1f}%",
+            "MAM": f"{probs[1]*100:.1f}%",
+            "MAS": f"{probs[2]*100:.1f}%"
+        })
 
-    # Phrase explicative
-    st.info(
-        f"L'enfant a {probs[0]*100:.1f}% de chances d’être en bon état nutritionnel, "
-        f"{probs[1]*100:.1f}% pour une malnutrition aiguë modérée (MAM), "
-        f"et {probs[2]*100:.1f}% pour une malnutrition aiguë sévère (MAS)."
-    )
+        st.info(
+            f"L'enfant a {probs[0]*100:.1f}% de chances d’être en bon état nutritionnel, "
+            f"{probs[1]*100:.1f}% pour une malnutrition aiguë modérée (MAM), "
+            f"et {probs[2]*100:.1f}% pour une malnutrition aiguë sévère (MAS)."
+        )
 
-    # Recommandations IA
-    st.markdown("### 🛡️ Recommandations personnalisées :")
-    for reco in conseils:
-        st.write(reco)
+        st.markdown("### 🛡️ Recommandations personnalisées :")
+        for reco in conseils:
+            st.write(reco)
+
+    except Exception as e:
+        st.error(f"Erreur lors de la prédiction : {e}")
