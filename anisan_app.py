@@ -63,11 +63,7 @@ with st.form("form_enfant"):
             score = 1
 
         # Probabilités simulées
-        probs = {
-            "Bon": "60.0%",
-            "MAM": "25.0%",
-            "MAS": "15.0%"
-        }
+        probs = {"Bon": "60.0%", "MAM": "25.0%", "MAS": "15.0%"}
         if result == "MAS":
             probs = {"Bon": "10.0%", "MAM": "30.0%", "MAS": "60.0%"}
         elif result == "MAM":
@@ -77,6 +73,7 @@ with st.form("form_enfant"):
         st.write(f"🧠 **Statut nutritionnel prédit :** {result}")
         st.write("📊 **Détail des probabilités :**")
         st.json(probs)
+        st.markdown(f"👉 Ce résultat signifie que l’enfant a **{probs[result]}** de chance d’être classé comme *{result}*.")
 
         st.subheader("🍽️ Recommandations personnalisées")
         if result == "Bon":
