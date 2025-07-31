@@ -66,7 +66,7 @@ if submitted:
         phase = "Stress nutritionnel"
         couleur = "🟡"
     else:
-        phase = "Phase minimale"
+        phase = "Bon état nutritionnel"
         couleur = "🟢"
 
     enfant = {
@@ -107,31 +107,54 @@ if st.session_state["enfants"]:
     col6.metric("📐 Taille moyenne", f"{taille_moy:.1f} cm")
 
     st.markdown("## 🗺️ Répartition géographique")
+
+    coords = {
+        # Niger
+        "Agadez": [17.0, 8.0],
+        "Diffa": [13.3, 12.6],
+        "Dosso": [13.0, 3.2],
+        "Maradi": [13.5, 7.1],
+        "Niamey": [13.5, 2.1],
+        "Tahoua": [14.8, 5.3],
+        "Tillabéri": [14.2, 1.5],
+        "Zinder": [13.8, 8.9],
+        # Sénégal
+        "Dakar": [14.7, -17.5],
+        "Diourbel": [14.65, -16.23],
+        "Fatick": [14.33, -16.5],
+        "Kaffrine": [14.1, -15.55],
+        "Kaolack": [14.15, -16.1],
+        "Kédougou": [12.55, -12.18],
+        "Kolda": [12.89, -14.95],
+        "Louga": [15.61, -16.21],
+        "Matam": [15.65, -13.26],
+        "Saint-Louis": [16.02, -16.5],
+        "Sédhiou": [12.7, -15.6],
+        "Tambacounda": [13.77, -13.67],
+        "Thiès": [14.8, -16.92],
+        "Ziguinchor": [12.55, -16.28]
+    }
+
+    latest_enfant = st.session_state["enfants"][-1]
+    focus_coord = coords.get(latest_enfant["Région"], [14.5, -14.5])
+    m = folium.Map(location=focus_coord, zoom_start=6)
+
     region_counts = df["Région"].value_counts().reset_index()
     region_counts.columns = ["Région", "Nombre"]
-    m = folium.Map(location=[14.5, -14.5], zoom_start=6)
-    coords = {
-        "Ziguinchor": [12.5, -16.3],
-        "Dakar": [14.7, -17.5],
-        "Thiès": [14.8, -16.9],
-        "Kolda": [12.9, -14.9],
-        "Saint-Louis": [16.0, -16.5],
-        "Tambacounda": [13.8, -13.7],
-        "Matam": [15.3, -13.3],
-        "Kaolack": [14.2, -16.1]
-    }
+
     for _, row in region_counts.iterrows():
         nom = row["Région"]
         n = row["Nombre"]
         if nom in coords:
             folium.CircleMarker(
                 location=coords[nom],
-                radius=10,
+                radius=8 + n,
                 popup=f"{nom} : {n} cas",
                 color="blue",
                 fill=True,
                 fill_color="blue"
             ).add_to(m)
+
     st_folium(m, width=700, height=400)
 
     st.markdown("## 🧾 Tableau des enfants")
