@@ -9,34 +9,29 @@ st.set_page_config(page_title="ANISAN", layout="centered")
 st.title("🍼 Application ANISAN - Suivi Nutritionnel des Enfants")
 
 # Données des régions avec coordonnées géographiques
-regions_coords = {
-    "Niger": {
-        "Agadez": (16.9666, 7.9911),
-        "Dosso": (13.05, 3.2),
-        "Maradi": (13.5, 7.1),
-        "Niamey": (13.5, 2.1),
-        "Tahoua": (14.9, 5.3),
-        "Tillabéri": (14.2, 1.45),
-        "Zinder": (13.8, 8.99)
-    },
-    "Burkina Faso": {
-        "Centre": (12.3714, -1.5197),
-        "Hauts-Bassins": (11.1, -4.3),
-        "Est": (12.5, 0.4)
-    },
-    "Sénégal": {
-        "Dakar": (14.6928, -17.4467),
-        "Thiès": (14.7833, -16.9333),
-        "Saint-Louis": (16.0179, -16.4896)
-    },
-    "Bénin": {
-        "Alibori": (11.5, 3.5),
-        "Borgou": (9.3, 2.6),
-        "Collines": (8.6, 2.3),
-        "Ouémé": (6.5, 2.6)
-    }
+pays_regions = {
+    "Bénin": ["Alibori", "Atacora", "Atlantique", "Borgou", "Collines", "Donga", "Kouffo", "Littoral", "Mono", "Ouémé", "Plateau", "Zou"],
+    "Burkina Faso": ["Boucle du Mouhoun", "Cascades", "Centre", "Centre-Est", "Centre-Nord", "Centre-Ouest", "Centre-Sud", "Est", "Hauts-Bassins", "Nord", "Plateau-Central", "Sahel", "Sud-Ouest"],
+    "Côte d'Ivoire": ["Abidjan", "Bas-Sassandra", "Comoé", "Denguélé", "Gôh-Djiboua", "Lacs", "Lagunes", "Montagnes", "Sassandra-Marahoué", "Savanes", "Vallée du Bandama", "Woroba", "Yamoussoukro", "Zanzan"],
+    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Niamey", "Tahoua", "Tillabéri", "Zinder"],
+    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda", "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"],
+    "Togo": ["Centrale", "Kara", "Maritime", "Plateaux", "Savanes"],
+    "Mali": ["Bamako", "Gao", "Kayes", "Kidal", "Koulikoro", "Mopti", "Ségou", "Sikasso", "Tombouctou"],
+    "Guinée": ["Boké", "Conakry", "Faranah", "Kankan", "Kindia", "Labé", "Mamou", "Nzérékoré"],
+    "Gambie": ["Banjul", "Kanifing", "Brikama", "Mansa Konko", "Kerewan", "Kuntaur", "Janjanbureh", "Basse"],
+    "Ghana": ["Greater Accra", "Ashanti", "Brong-Ahafo", "Central", "Eastern", "Northern", "Upper East", "Upper West", "Volta", "Western"],
+    "Cap-Vert": ["Santiago", "São Vicente", "Santo Antão", "Fogo", "Brava", "Maio", "Sal", "Boa Vista"],
+    "Guinée-Bissau": ["Bafatá", "Biombo", "Bissau", "Bolama", "Cacheu", "Gabu", "Oio", "Quinara", "Tombali"],
+    "Tchad": ["N'Djamena", "Kanem", "Lac", "Logone Occidental", "Logone Oriental", "Mandoul", "Mayo-Kebbi Est", "Mayo-Kebbi Ouest", "Ouaddaï", "Salamat", "Tandjilé"],
+    "Mauritanie": ["Adrar", "Assaba", "Brakna", "Dakhlet Nouadhibou", "Gorgol", "Guidimakha", "Hodh Ech Chargui", "Hodh El Gharbi", "Inchiri", "Nouakchott Nord", "Nouakchott Ouest", "Nouakchott Sud", "Tagant", "Tiris Zemmour", "Trarza"],
+    "Nigeria": ["Abuja", "Lagos", "Kano", "Kaduna", "Rivers", "Oyo", "Benue", "Borno", "Edo", "Enugu", "Imo", "Ondo", "Osun", "Sokoto", "Zamfara"],
+    "Liberia": ["Bomi", "Bong", "Gbarpolu", "Grand Bassa", "Grand Cape Mount", "Grand Gedeh", "Grand Kru", "Lofa", "Margibi", "Maryland", "Montserrado", "Nimba", "River Cess", "River Gee", "Sinoe"],
+    "Sierra Leone": ["Eastern", "Northern", "Southern", "Western Area Rural", "Western Area Urban"]
 }
 
+# Interface utilisateur
+pays = st.selectbox("Pays", list(pays_regions.keys()))
+region = st.selectbox("Région", pays_regions[pays])
 # Initialisation de la session
 if "enfants" not in st.session_state:
     st.session_state.enfants = []
