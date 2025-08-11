@@ -265,7 +265,7 @@ if "data" not in st.session_state:
 
 # Sidebar logo et titre
 try:
-    st.sidebar.image("logo_provisoire.png", width=150)
+    st.sidebar.image("anisan/logo_provisoire.png", width=150)
 except Exception:
     st.sidebar.write("Logo non trouvé.")
 st.sidebar.title("ANISAN")
