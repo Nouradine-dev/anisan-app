@@ -4,3 +4,4 @@ matplotlib
 folium
 streamlit-folium
 reportlab
+geopy

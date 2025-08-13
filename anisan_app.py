@@ -8,6 +8,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
 import os
+from geopy.geocoders import Nominatim
 
 # -------------------------------
 # Données CEDEAO/CILSS complètes
@@ -56,15 +57,15 @@ CEDEAO_CILSS = {
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
-# Logo avec adaptation
+# Logo agrandi avec texte clair
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
 cols = st.columns([1,4])
 with cols[0]:
     if os.path.exists(logo_path):
-        st.image(logo_path, width=120)
+        st.image(logo_path, width=150)
 with cols[1]:
     st.markdown("<h1 style='color:green'>ANISAN - Suivi Nutritionnel</h1>"
-                "<h3 style='color:blue'>CILSS / CEDEAO / AES</h3>", unsafe_allow_html=True)
+                "<h3 style='color:#00aaff'>CILSS / CEDEAO / AES</h3>", unsafe_allow_html=True)
 
 # -------------------------------
 # DataFrame initial
@@ -102,7 +103,20 @@ with st.form("enregistrement_form"):
     if submitted:
         imc = poids / ((taille/100)**2) if taille>0 else 0
         age = int((date_enregistrement - date_naissance).days / 30.44)
-        lat, lon = 0.0, 0.0  # Coordonnées fictives pour l'exemple, on peut intégrer API si souhaité
+        
+        # -------------------------------
+        # Géolocalisation automatique
+        # -------------------------------
+        geolocator = Nominatim(user_agent="anisan_app")
+        try:
+            if quartier.strip():
+                location_str = f"{quartier}, {region}, {pays}"
+            else:
+                location_str = f"{region}, {pays}"
+            location = geolocator.geocode(location_str)
+            lat, lon = (location.latitude, location.longitude) if location else (0.0,0.0)
+        except:
+            lat, lon = 0.0,0.0
 
         # Statut et prédiction IA
         if imc < 14:
