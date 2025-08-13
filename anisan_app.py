@@ -10,7 +10,7 @@ from io import BytesIO
 import os
 
 # -------------------------------
-# Données CEDEAO/CILSS avec régions et coordonnées
+# Données CEDEAO/CILSS
 # -------------------------------
 CEDEAO_CILSS = {
     "Bénin": {"Alibori": (10.0333, 11.6333), "Atacora": (10.2, 1.8333), "Atlantique": (6.4833, 2.3),
@@ -43,13 +43,12 @@ CEDEAO_CILSS = {
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
-# Logo robuste
+# Logo sur la même page
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
 if os.path.exists(logo_path):
-    with open(logo_path, "rb") as f:
-        st.sidebar.image(f.read(), use_container_width=True)
+    st.image(logo_path, width=150)
 else:
-    st.sidebar.write("Logo non trouvé")
+    st.write("Logo non trouvé")
 
 st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
 
@@ -58,12 +57,12 @@ st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
 # -------------------------------
 if "df_enfants" not in st.session_state:
     st.session_state.df_enfants = pd.DataFrame(columns=[
-        "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","Oedeme",
+        "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","PB_mm","Oedeme","Quartier/Commune",
         "Pays","Region","IMC","Statut","Prediction","Conseils","Age","Latitude","Longitude"
     ])
 
 # -------------------------------
-# Pays et régions dynamiques hors formulaire
+# Pays et régions dynamiques
 # -------------------------------
 pays = st.selectbox("Pays", list(CEDEAO_CILSS.keys()))
 regions_dispo = list(CEDEAO_CILSS[pays].keys())
@@ -79,7 +78,9 @@ with st.form("enregistrement_form"):
     date_enregistrement = st.date_input("Date d'enregistrement", datetime.today())
     poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
     taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
+    pb_mm = st.number_input("PB (mm)", min_value=0.0, step=0.1)
     oedeme = st.selectbox("Présence d’œdèmes bilatéraux ?", ["Non", "Oui"])
+    quartier = st.text_input("Quartier/Commune (optionnel)")
     
     submitted = st.form_submit_button("Enregistrer")
     
@@ -101,11 +102,13 @@ with st.form("enregistrement_form"):
             prediction = ("État nutritionnel acceptable. Maintenir alimentation équilibrée.")
 
         st.session_state.df_enfants.loc[len(st.session_state.df_enfants)] = [
-            nom, prenom, date_naissance, date_enregistrement, poids, taille, oedeme, pays, region,
-            round(imc,2), statut, prediction, prediction, age, lat, lon
+            nom, prenom, date_naissance, date_enregistrement, poids, taille, pb_mm, oedeme, quartier,
+            pays, region, round(imc,2), statut, prediction, prediction, age, lat, lon
         ]
         st.success(f"Enregistrement effectué pour {prenom} {nom}.")
-        st.info(f"Statut nutritionnel: {statut}\nConseils: {prediction}")
+        if statut != "Normal":
+            st.warning(f"Alerte : {prenom} {nom} présente {statut}")
+        st.info(f"Conseils: {prediction}")
 
 # -------------------------------
 # Affichage des données
@@ -148,7 +151,7 @@ if not st.session_state.df_enfants.empty:
     c.drawString(50, 800, "Rapport ANISAN")
     y = 750
     for i, row in df.iterrows():
-        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} | {row['Pays']} - {row['Region']} | Age: {row['Age']} mois | IMC: {row['IMC']} | Statut: {row['Statut']} | Conseils: {row['Conseils']}")
+        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} | {row['Pays']} - {row['Region']} | Quartier: {row['Quartier/Commune']} | Age: {row['Age']} mois | IMC: {row['IMC']} | Statut: {row['Statut']} | PB: {row['PB_mm']} mm | Conseils: {row['Conseils']}")
         y -= 20
         if y < 50:
             c.showPage()
