@@ -7,6 +7,7 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
+import os
 
 # -------------------------------
 # Données CEDEAO/CILSS avec régions et coordonnées
@@ -41,13 +42,14 @@ CEDEAO_CILSS = {
 # Configuration page
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)", layout="wide")
-import os
 
-# Détermine le chemin absolu du fichier logo dans le même dossier que anisan_app.py
+# Logo robuste
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
-
-# Affiche le logo
-st.sidebar.image(logo_path, use_container_width=True)
+if os.path.exists(logo_path):
+    with open(logo_path, "rb") as f:
+        st.sidebar.image(f.read(), use_container_width=True)
+else:
+    st.sidebar.write("Logo non trouvé")
 
 st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
 
@@ -59,6 +61,14 @@ if "df_enfants" not in st.session_state:
         "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","Oedeme",
         "Pays","Region","IMC","Statut","Prediction","Conseils","Age","Latitude","Longitude"
     ])
+
+# -------------------------------
+# Initialisation regions
+# -------------------------------
+if "regions_dispo" not in st.session_state:
+    st.session_state.regions_dispo = []
+if "last_pays" not in st.session_state:
+    st.session_state.last_pays = None
 
 # -------------------------------
 # Formulaire d'enregistrement
@@ -73,40 +83,41 @@ with st.form("enregistrement_form"):
     oedeme = st.selectbox("Présence d’œdèmes bilatéraux ?", ["Non", "Oui"])
     
     # Pays / Régions dynamiques
-    pays = st.selectbox("Pays", list(CEDEAO_CILSS.keys()), key="pays_select")
-    # Mettre à jour les régions automatiquement
-    if "regions_dispo" not in st.session_state or st.session_state.get("last_pays") != pays:
-        st.session_state.regions_dispo = list(CEDEAO_CILSS[pays].keys())
-        st.session_state.last_pays = pays
-    region = st.selectbox("Région", st.session_state.regions_dispo, key="region_select")
-    
+    def update_regions():
+        st.session_state.regions_dispo = list(CEDEAO_CILSS[st.session_state.pays_select].keys())
+
+    pays = st.selectbox(
+        "Pays",
+        list(CEDEAO_CILSS.keys()),
+        key="pays_select",
+        on_change=update_regions
+    )
+
+    if st.session_state.regions_dispo:
+        region = st.selectbox("Région", st.session_state.regions_dispo, key="region_select")
+    else:
+        region = st.selectbox("Région", ["Aucune région disponible"])
+
     submitted = st.form_submit_button("Enregistrer")
     
     if submitted:
-        # Calcul IMC
         imc = poids / ((taille/100)**2) if taille>0 else 0
-        # Calcul âge en mois
         age = int((date_enregistrement - date_naissance).days / 30.44)
-        # Coordonnées automatiques
         lat, lon = CEDEAO_CILSS[pays][region]
-        
-        # Classification nutritionnelle OMS
+
+        # Classification nutritionnelle
         if imc < 14:
             statut = "MAS"
-            prediction = ("Malnutrition Aiguë Sévère. "
-                          "Suivi médical urgent requis. "
+            prediction = ("Malnutrition Aiguë Sévère. Suivi médical urgent requis. "
                           "Alimentation thérapeutique recommandée.")
         elif imc < 16:
             statut = "MAM"
-            prediction = ("Malnutrition Aiguë Modérée. "
-                          "Suivi nutritionnel conseillé. "
+            prediction = ("Malnutrition Aiguë Modérée. Suivi nutritionnel conseillé. "
                           "Renforcer l'alimentation avec nutriments clés.")
         else:
             statut = "Normal"
-            prediction = ("État nutritionnel acceptable. "
-                          "Maintenir alimentation équilibrée.")
-        
-        # Stockage
+            prediction = ("État nutritionnel acceptable. Maintenir alimentation équilibrée.")
+
         st.session_state.df_enfants.loc[len(st.session_state.df_enfants)] = [
             nom, prenom, date_naissance, date_enregistrement, poids, taille, oedeme, pays, region,
             round(imc,2), statut, prediction, prediction, age, lat, lon
@@ -130,7 +141,7 @@ if not st.session_state.df_enfants.empty:
     ax.set_ylabel("Nombre d'enfants")
     st.pyplot(fig)
     
-    # Carte avec cercle bleu
+    # Carte
     st.subheader("Carte de localisation")
     map_center = [df["Latitude"].mean(), df["Longitude"].mean()]
     carte = folium.Map(location=map_center, zoom_start=6)
