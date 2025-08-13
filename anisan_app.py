@@ -39,9 +39,9 @@ CEDEAO_CILSS = {
 }
 
 # -------------------------------
-# Configuration page
+# Page config
 # -------------------------------
-st.set_page_config(page_title="ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)", layout="wide")
+st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
 # Logo robuste
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
@@ -54,7 +54,7 @@ else:
 st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
 
 # -------------------------------
-# Initialisation DataFrame
+# DataFrame initial
 # -------------------------------
 if "df_enfants" not in st.session_state:
     st.session_state.df_enfants = pd.DataFrame(columns=[
@@ -63,12 +63,11 @@ if "df_enfants" not in st.session_state:
     ])
 
 # -------------------------------
-# Initialisation regions
+# Pays et régions dynamiques hors formulaire
 # -------------------------------
-if "regions_dispo" not in st.session_state:
-    st.session_state.regions_dispo = []
-if "last_pays" not in st.session_state:
-    st.session_state.last_pays = None
+pays = st.selectbox("Pays", list(CEDEAO_CILSS.keys()))
+regions_dispo = list(CEDEAO_CILSS[pays].keys())
+region = st.selectbox("Région", regions_dispo)
 
 # -------------------------------
 # Formulaire d'enregistrement
@@ -82,22 +81,6 @@ with st.form("enregistrement_form"):
     taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
     oedeme = st.selectbox("Présence d’œdèmes bilatéraux ?", ["Non", "Oui"])
     
-    # Pays / Régions dynamiques
-    def update_regions():
-        st.session_state.regions_dispo = list(CEDEAO_CILSS[st.session_state.pays_select].keys())
-
-    pays = st.selectbox(
-        "Pays",
-        list(CEDEAO_CILSS.keys()),
-        key="pays_select",
-        on_change=update_regions
-    )
-
-    if st.session_state.regions_dispo:
-        region = st.selectbox("Région", st.session_state.regions_dispo, key="region_select")
-    else:
-        region = st.selectbox("Région", ["Aucune région disponible"])
-
     submitted = st.form_submit_button("Enregistrer")
     
     if submitted:
@@ -105,7 +88,6 @@ with st.form("enregistrement_form"):
         age = int((date_enregistrement - date_naissance).days / 30.44)
         lat, lon = CEDEAO_CILSS[pays][region]
 
-        # Classification nutritionnelle
         if imc < 14:
             statut = "MAS"
             prediction = ("Malnutrition Aiguë Sévère. Suivi médical urgent requis. "
