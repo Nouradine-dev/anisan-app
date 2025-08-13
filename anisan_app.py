@@ -57,22 +57,22 @@ CEDEAO_CILSS = {
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
-# Logo agrandi avec texte clair
+# Logo et titre
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
 cols = st.columns([1,4])
 with cols[0]:
     if os.path.exists(logo_path):
-        st.image(logo_path, width=150)
+        st.image(logo_path, width=160)
 with cols[1]:
     st.markdown("<h1 style='color:green'>ANISAN - Suivi Nutritionnel</h1>"
-                "<h3 style='color:#00aaff'>CILSS / CEDEAO / AES</h3>", unsafe_allow_html=True)
+                "<h3 style='color:white'>CILSS / CEDEAO / AES</h3>", unsafe_allow_html=True)
 
 # -------------------------------
 # DataFrame initial
 # -------------------------------
 if "df_enfants" not in st.session_state:
     st.session_state.df_enfants = pd.DataFrame(columns=[
-        "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","PB_mm",
+        "Nom","Prenom","Sexe","Date_naissance","Date_enregistrement","Poids","Taille","PB_mm",
         "Oedeme","Quartier/Commune","Pays","Region","IMC","Statut","Prediction",
         "Conseils","Age","Latitude","Longitude"
     ])
@@ -90,6 +90,7 @@ region = st.selectbox("Région", regions_dispo)
 with st.form("enregistrement_form"):
     nom = st.text_input("Nom de l'enfant")
     prenom = st.text_input("Prénom de l'enfant")
+    sexe = st.selectbox("Sexe de l'enfant", ["H", "F"])
     date_naissance = st.date_input("Date de naissance")
     date_enregistrement = st.date_input("Date d'enregistrement", datetime.today())
     poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
@@ -104,15 +105,10 @@ with st.form("enregistrement_form"):
         imc = poids / ((taille/100)**2) if taille>0 else 0
         age = int((date_enregistrement - date_naissance).days / 30.44)
         
-        # -------------------------------
         # Géolocalisation automatique
-        # -------------------------------
         geolocator = Nominatim(user_agent="anisan_app")
         try:
-            if quartier.strip():
-                location_str = f"{quartier}, {region}, {pays}"
-            else:
-                location_str = f"{region}, {pays}"
+            location_str = f"{quartier}, {region}, {pays}" if quartier.strip() else f"{region}, {pays}"
             location = geolocator.geocode(location_str)
             lat, lon = (location.latitude, location.longitude) if location else (0.0,0.0)
         except:
@@ -132,9 +128,20 @@ with st.form("enregistrement_form"):
             prediction = "Normal"
             conseils = "État nutritionnel acceptable, maintenir alimentation équilibrée."
 
+        # Alerte dégradation
+        previous = st.session_state.df_enfants[
+            (st.session_state.df_enfants["Nom"]==nom) & 
+            (st.session_state.df_enfants["Prenom"]==prenom)
+        ]
+        if not previous.empty:
+            prev_imc = previous.iloc[-1]["IMC"]
+            prev_pb = previous.iloc[-1]["PB_mm"]
+            if imc < prev_imc or pb_mm < prev_pb:
+                st.error(f"Alerte : {prenom} {nom} présente une **dégradation** de son état nutritionnel.")
+
         # Ajout au DataFrame
         st.session_state.df_enfants.loc[len(st.session_state.df_enfants)] = [
-            nom, prenom, date_naissance, date_enregistrement, poids, taille, pb_mm,
+            nom, prenom, sexe, date_naissance, date_enregistrement, poids, taille, pb_mm,
             oedeme, quartier, pays, region, round(imc,2), statut, prediction, conseils,
             age, lat, lon
         ]
@@ -144,7 +151,7 @@ with st.form("enregistrement_form"):
 # -------------------------------
 if submitted:
     st.subheader("Prédictions et conseils IA")
-    st.write(f"Enfant : {prenom} {nom}")
+    st.write(f"Enfant : {prenom} {nom} ({sexe})")
     st.write(f"Statut nutritionnel : **{statut}**")
     st.write(f"Prédiction IA : {prediction}")
     st.write(f"Conseils : {conseils}")
@@ -178,7 +185,7 @@ if not st.session_state.df_enfants.empty:
             color='blue',
             fill=True,
             fill_color='blue',
-            popup=f"{row['Prenom']} {row['Nom']} - IMC {row['IMC']} - {row['Statut']}"
+            popup=f"{row['Prenom']} {row['Nom']} ({row['Sexe']}) - IMC {row['IMC']} - {row['Statut']}"
         ).add_to(carte)
     st_folium(carte, width=700, height=450)
 
@@ -192,7 +199,7 @@ if not st.session_state.df_enfants.empty:
     c.drawString(50, 800, "Rapport ANISAN")
     y = 750
     for i, row in df.iterrows():
-        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} | {row['Pays']} - {row['Region']} | "
+        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} ({row['Sexe']}) | {row['Pays']} - {row['Region']} | "
                              f"Quartier: {row['Quartier/Commune']} | Age: {row['Age']} mois | "
                              f"IMC: {row['IMC']} | Statut: {row['Statut']} | PB: {row['PB_mm']} mm | "
                              f"Conseils: {row['Conseils']}")
