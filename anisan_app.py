@@ -41,7 +41,14 @@ CEDEAO_CILSS = {
 # Configuration page
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)", layout="wide")
-st.sidebar.image("logo_provisoire.png", use_container_width=True)
+import os
+
+# Détermine le chemin absolu du fichier logo dans le même dossier que anisan_app.py
+logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
+
+# Affiche le logo
+st.sidebar.image(logo_path, use_container_width=True)
+
 st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
 
 # -------------------------------
