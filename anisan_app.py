@@ -1,9 +1,9 @@
-import streamlit as st
+import streamlit as st 
 import pandas as pd
 import matplotlib.pyplot as plt
 import folium
 from streamlit_folium import st_folium
-from datetime import datetime
+from datetime import datetime, date
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
@@ -78,6 +78,59 @@ if "df_enfants" not in st.session_state:
     ])
 
 # -------------------------------
+# Fonctions de calcul (OMS/FAO)
+# -------------------------------
+SEUIL_MUAC_MAS = 115  # mm
+SEUIL_MUAC_MAM = 125  # mm
+
+SEVERITY = {"Normal": 0, "MAM": 1, "MAS": 2}
+
+
+def evaluer_statut(pb_mm: float, oedeme_bool: bool, imc: float):
+    """Retourne (statut, prediction, conseils) en appliquant une logique unifiée.
+    Règles OMS/FAO simplifiées pour 6-59 mois :
+    - Oedèmes bilatéraux OU MUAC < 115 mm => MAS
+    - 115 mm <= MUAC < 125 mm => MAM
+    - Sinon, on peut affiner par IMC (fallback) si disponible :
+        * IMC < 14 => MAS
+        * 14 <= IMC < 16 => MAM
+        * IMC >= 16 => Normal
+    """
+    if oedeme_bool or (pb_mm and pb_mm < SEUIL_MUAC_MAS):
+        return (
+            "MAS",
+            "Malnutrition Aiguë Sévère",
+            "Suivi médical **urgent** requis, traitement nutritionnel thérapeutique."
+        )
+    if pb_mm and SEUIL_MUAC_MAS <= pb_mm < SEUIL_MUAC_MAM:
+        return (
+            "MAM",
+            "Malnutrition Aiguë Modérée",
+            "Suivi nutritionnel rapproché, ration enrichie et conseils aux parents."
+        )
+
+    # Si MUAC >= 125 et pas d'œdème, on affine par IMC (optionnel)
+    if imc < 14:
+        return (
+            "MAS",
+            "Malnutrition Aiguë Sévère",
+            "Suivi médical **urgent** requis, traitement nutritionnel thérapeutique."
+        )
+    elif imc < 16:
+        return (
+            "MAM",
+            "Malnutrition Aiguë Modérée",
+            "Suivi nutritionnel rapproché, ration enrichie et conseils aux parents."
+        )
+    else:
+        return (
+            "Normal",
+            "Normal",
+            "État acceptable. Poursuivre une alimentation diversifiée et équilibrée."
+        )
+
+
+# -------------------------------
 # Pays et régions dynamiques
 # -------------------------------
 pays = st.selectbox("Pays", list(CEDEAO_CILSS.keys()))
@@ -92,64 +145,62 @@ with st.form("enregistrement_form"):
     prenom = st.text_input("Prénom de l'enfant")
     sexe = st.selectbox("Sexe de l'enfant", ["H", "F"])
     date_naissance = st.date_input("Date de naissance")
-    date_enregistrement = st.date_input("Date d'enregistrement", datetime.today())
+    date_enregistrement = st.date_input("Date d'enregistrement", date.today())
     poids = st.number_input("Poids (kg)", min_value=0.0, step=0.1)
     taille = st.number_input("Taille (cm)", min_value=0.0, step=0.1)
     pb_mm = st.number_input("PB (mm)", min_value=0.0, step=0.1)
     oedeme = st.selectbox("Présence d’œdèmes bilatéraux ?", ["Non", "Oui"])
+    oedeme_bool = (oedeme == "Oui")
     quartier = st.text_input("Quartier/Commune (optionnel)")
 
     submitted = st.form_submit_button("Enregistrer")
-    
+
     if submitted:
-        imc = poids / ((taille/100)**2) if taille>0 else 0
-        age = int((date_enregistrement - date_naissance).days / 30.44)
-        
+        imc = poids / ((taille/100)**2) if taille > 0 else 0
+        # âge en mois
+        try:
+            age = int((date_enregistrement - date_naissance).days / 30.44)
+        except Exception:
+            age = 0
+
         # Géolocalisation automatique
         geolocator = Nominatim(user_agent="anisan_app")
         try:
             location_str = f"{quartier}, {region}, {pays}" if quartier.strip() else f"{region}, {pays}"
             location = geolocator.geocode(location_str)
-            lat, lon = (location.latitude, location.longitude) if location else (0.0,0.0)
-        except:
-            lat, lon = 0.0,0.0
+            lat, lon = (location.latitude, location.longitude) if location else (0.0, 0.0)
+        except Exception:
+            lat, lon = 0.0, 0.0
 
-        # Statut et prédiction IA
-        if imc < 14:
-            statut = "MAS"
-            prediction = "Malnutrition Aiguë Sévère"
-            conseils = "Suivi médical urgent requis, alimentation thérapeutique."
-        elif imc < 16:
-            statut = "MAM"
-            prediction = "Malnutrition Aiguë Modérée"
-            conseils = "Suivi nutritionnel conseillé, renforcer alimentation."
-        else:
-            statut = "Normal"
-            prediction = "Normal"
-            conseils = "État nutritionnel acceptable, maintenir alimentation équilibrée."
+        # Statut et prédiction (logique unifiée MUAC/œdème -> IMC)
+        statut, prediction, conseils = evaluer_statut(pb_mm, oedeme_bool, imc)
 
-        # Alerte dégradation
+        # Alerte dégradation (baseline: comparaison dernier enregistrement)
         previous = st.session_state.df_enfants[
-            (st.session_state.df_enfants["Nom"]==nom) & 
-            (st.session_state.df_enfants["Prenom"]==prenom)
+            (st.session_state.df_enfants["Nom"] == nom) &
+            (st.session_state.df_enfants["Prenom"] == prenom)
         ]
         if not previous.empty:
-            prev_imc = previous.iloc[-1]["IMC"]
-            prev_pb = previous.iloc[-1]["PB_mm"]
-            if imc < prev_imc or pb_mm < prev_pb:
+            prev = previous.iloc[-1]
+            prev_imc = prev.get("IMC", 0)
+            prev_pb = prev.get("PB_mm", 0)
+            prev_statut = prev.get("Statut", "Normal")
+
+            # Dégradation si statut plus sévère OU baisse MUAC/IMC
+            if SEVERITY.get(statut, 0) > SEVERITY.get(prev_statut, 0) or imc < prev_imc or pb_mm < prev_pb:
                 st.error(f"Alerte : {prenom} {nom} présente une **dégradation** de son état nutritionnel.")
 
         # Ajout au DataFrame
         st.session_state.df_enfants.loc[len(st.session_state.df_enfants)] = [
             nom, prenom, sexe, date_naissance, date_enregistrement, poids, taille, pb_mm,
-            oedeme, quartier, pays, region, round(imc,2), statut, prediction, conseils,
+            oedeme, quartier, pays, region, round(imc, 2), statut, prediction, conseils,
             age, lat, lon
         ]
 
 # -------------------------------
 # Affichage prédiction & conseils
 # -------------------------------
-if submitted:
+if 'submitted' in locals() and submitted:
     st.subheader("Prédictions et conseils IA")
     st.write(f"Enfant : {prenom} {nom} ({sexe})")
     st.write(f"Statut nutritionnel : **{statut}**")
@@ -165,7 +216,7 @@ if not st.session_state.df_enfants.empty:
     st.subheader("Données enregistrées")
     df = st.session_state.df_enfants
     st.dataframe(df)
-    
+
     # Histogramme IMC
     fig, ax = plt.subplots()
     ax.hist(df["IMC"], bins=10, color="skyblue", edgecolor="black")
@@ -173,12 +224,16 @@ if not st.session_state.df_enfants.empty:
     ax.set_xlabel("IMC")
     ax.set_ylabel("Nombre d'enfants")
     st.pyplot(fig)
-    
+
     # Carte
     st.subheader("Carte de localisation")
-    map_center = [df["Latitude"].mean(), df["Longitude"].mean()]
+    # Eviter NaN -> remplacer par 0.0
+    df_plot = df.copy()
+    df_plot["Latitude"] = pd.to_numeric(df_plot["Latitude"], errors='coerce').fillna(0.0)
+    df_plot["Longitude"] = pd.to_numeric(df_plot["Longitude"], errors='coerce').fillna(0.0)
+    map_center = [df_plot["Latitude"].mean() or 0.0, df_plot["Longitude"].mean() or 0.0]
     carte = folium.Map(location=map_center, zoom_start=6)
-    for idx, row in df.iterrows():
+    for idx, row in df_plot.iterrows():
         folium.CircleMarker(
             location=[row["Latitude"], row["Longitude"]],
             radius=8,
