@@ -10,32 +10,45 @@ from io import BytesIO
 import os
 
 # -------------------------------
-# Données CEDEAO/CILSS
+# Données CEDEAO/CILSS complètes
 # -------------------------------
 CEDEAO_CILSS = {
-    "Bénin": {"Alibori": (10.0333, 11.6333), "Atacora": (10.2, 1.8333), "Atlantique": (6.4833, 2.3),
-              "Borgou": (9.7667, 3.25), "Collines": (7.2, 2.3), "Donga": (9.9833, 2.6667),
-              "Kouffo": (6.6333, 1.8333), "Littoral": (6.3667, 2.4333), "Mono": (6.6333, 1.7833),
-              "Ouémé": (6.4833, 2.6167), "Plateau": (7.9833, 1.6167), "Zou": (7.1667, 2.25)},
-    "Burkina Faso": {"Boucle du Mouhoun": (12.5, -3.0), "Cascades": (10.5, -4.0), "Centre": (12.35, -1.5167),
-                     "Centre-Est": (11.5, -0.85), "Centre-Nord": (13.0, -1.0), "Centre-Ouest": (12.0, -2.0),
-                     "Centre-Sud": (11.0, -1.5), "Est": (11.5, 0.0), "Hauts-Bassins": (11.25, -4.25),
-                     "Nord": (14.0, 0.0), "Plateau-Central": (12.5, -1.5), "Sahel": (14.0, 0.0),
-                     "Sud-Ouest": (10.5, -3.0)},
-    "Cap-Vert": {"Santo Antão": (17.1, -25.5), "São Vicente": (16.8833, -24.9833)},
-    "Côte d'Ivoire": {"Abidjan": (5.336, -4.026), "Yamoussoukro": (6.816, -5.277)},
-    "Gambie": {"Banjul": (13.4549, -16.5790), "Kanifing": (13.4430, -16.6737)},
-    "Ghana": {"Greater Accra": (5.6, -0.2), "Ashanti": (6.6667, -1.6167)},
-    "Guinée": {"Conakry": (9.5, -13.7), "Kindia": (10.05, -12.85)},
-    "Guinée-Bissau": {"Bissau": (11.85, -15.5833), "Cacheu": (12.0, -16.25)},
-    "Liberia": {"Montserrado": (6.3, -10.8), "Bong": (7.0, -9.25)},
-    "Mali": {"Bamako": (12.65, -8.0), "Kayes": (13.4667, -11.4167)},
-    "Mauritanie": {"Nouakchott": (18.0735, -15.9582), "Nouadhibou": (20.9333, -17.0333)},
-    "Niger": {"Niamey": (13.5125, 2.1125), "Zinder": (13.8, 8.9833)},
-    "Nigeria": {"Lagos": (6.5244, 3.3792), "Abuja": (9.0578, 7.4951)},
-    "Sénégal": {"Dakar": (14.6928, -17.4467), "Thiès": (14.7833, -16.95)},
-    "Sierra Leone": {"Freetown": (8.4844, -13.2344), "Bo": (7.9667, -11.7333)},
-    "Togo": {"Lomé": (6.1167, 1.2167), "Kara": (9.555, 1.85)}
+    "Bénin": ["Alibori", "Atacora", "Atlantique", "Borgou", "Collines", "Donga",
+              "Kouffo", "Littoral", "Mono", "Ouémé", "Plateau", "Zou"],
+    "Burkina Faso": ["Boucle du Mouhoun", "Cascades", "Centre", "Centre-Est", "Centre-Nord",
+                     "Centre-Ouest", "Centre-Sud", "Est", "Hauts-Bassins", "Nord",
+                     "Plateau-Central", "Sahel", "Sud-Ouest"],
+    "Cap-Vert": ["Santo Antão", "São Vicente", "São Nicolau", "Sal", "Boa Vista", "Maio",
+                 "Santiago", "Fogo", "Brava"],
+    "Côte d'Ivoire": ["Abidjan", "Bas-Sassandra", "Comoé", "Denguélé", "Gôh-Djiboua",
+                      "Lacs", "Lagunes", "Montagnes", "Savanes", "Vallée du Bandama",
+                      "Woroba", "Yamoussoukro", "Zanzan"],
+    "Gambie": ["Banjul", "Kanifing", "Brikama", "Mansakonko", "Kerewan", "Janjanbureh",
+               "Basse"],
+    "Ghana": ["Ahafo", "Ashanti", "Bono", "Bono East", "Central", "Eastern",
+              "Greater Accra", "North East", "Northern", "Oti", "Savannah",
+              "Upper East", "Upper West", "Volta", "Western", "Western North"],
+    "Guinée": ["Boké", "Conakry", "Faranah", "Kankan", "Kindia", "Labé", "Mamou", "Nzérékoré"],
+    "Guinée-Bissau": ["Bissau", "Biombo", "Bafatá", "Gabú", "Oio", "Cacheu", "Bolama/Bijagos",
+                       "Quinara", "Tombali"],
+    "Liberia": ["Bomi", "Bong", "Gbarpolu", "Grand Bassa", "Grand Cape Mount", "Grand Gedeh",
+                "Grand Kru", "Lofa", "Margibi", "Maryland", "Montserrado", "Nimba",
+                "River Cess", "River Gee", "Sinoe"],
+    "Mali": ["Bamako", "Gao", "Kayes", "Kidal", "Koulikoro", "Mopti", "Segou", "Sikasso",
+             "Tombouctou"],
+    "Mauritanie": ["Adrar", "Assaba", "Brakna", "Dakhlet Nouadhibou", "Gorgol", "Guidimaka",
+                   "Hodh Ech Chargui", "Hodh El Gharbi", "Inchiri", "Nouakchott", "Tagant",
+                   "Tiris Zemmour", "Trarza"],
+    "Niger": ["Agadez", "Diffa", "Dosso", "Maradi", "Tahoua", "Tillabéri", "Zinder", "Niamey"],
+    "Nigeria": ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+                "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe",
+                "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
+                "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau",
+                "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "FCT Abuja"],
+    "Sénégal": ["Dakar", "Diourbel", "Fatick", "Kaffrine", "Kaolack", "Kédougou", "Kolda",
+                "Louga", "Matam", "Saint-Louis", "Sédhiou", "Tambacounda", "Thiès", "Ziguinchor"],
+    "Sierra Leone": ["Eastern", "Northern", "Southern", "Western Area"],
+    "Togo": ["Centrale", "Kara", "Maritime", "Plateaux", "Savanes"]
 }
 
 # -------------------------------
@@ -43,33 +56,35 @@ CEDEAO_CILSS = {
 # -------------------------------
 st.set_page_config(page_title="ANISAN - Suivi Nutritionnel", layout="wide")
 
-# Logo sur la même page
+# Logo avec adaptation
 logo_path = os.path.join(os.path.dirname(__file__), "logo_provisoire.png")
-if os.path.exists(logo_path):
-    st.image(logo_path, width=150)
-else:
-    st.write("Logo non trouvé")
-
-st.title("ANISAN - Système de Suivi Nutritionnel (CILSS / CEDEAO / AES)")
+cols = st.columns([1,4])
+with cols[0]:
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=120)
+with cols[1]:
+    st.markdown("<h1 style='color:green'>ANISAN - Suivi Nutritionnel</h1>"
+                "<h3 style='color:blue'>CILSS / CEDEAO / AES</h3>", unsafe_allow_html=True)
 
 # -------------------------------
 # DataFrame initial
 # -------------------------------
 if "df_enfants" not in st.session_state:
     st.session_state.df_enfants = pd.DataFrame(columns=[
-        "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","PB_mm","Oedeme","Quartier/Commune",
-        "Pays","Region","IMC","Statut","Prediction","Conseils","Age","Latitude","Longitude"
+        "Nom","Prenom","Date_naissance","Date_enregistrement","Poids","Taille","PB_mm",
+        "Oedeme","Quartier/Commune","Pays","Region","IMC","Statut","Prediction",
+        "Conseils","Age","Latitude","Longitude"
     ])
 
 # -------------------------------
 # Pays et régions dynamiques
 # -------------------------------
 pays = st.selectbox("Pays", list(CEDEAO_CILSS.keys()))
-regions_dispo = list(CEDEAO_CILSS[pays].keys())
+regions_dispo = CEDEAO_CILSS[pays]
 region = st.selectbox("Région", regions_dispo)
 
 # -------------------------------
-# Formulaire d'enregistrement
+# Formulaire
 # -------------------------------
 with st.form("enregistrement_form"):
     nom = st.text_input("Nom de l'enfant")
@@ -81,37 +96,49 @@ with st.form("enregistrement_form"):
     pb_mm = st.number_input("PB (mm)", min_value=0.0, step=0.1)
     oedeme = st.selectbox("Présence d’œdèmes bilatéraux ?", ["Non", "Oui"])
     quartier = st.text_input("Quartier/Commune (optionnel)")
-    
+
     submitted = st.form_submit_button("Enregistrer")
     
     if submitted:
         imc = poids / ((taille/100)**2) if taille>0 else 0
         age = int((date_enregistrement - date_naissance).days / 30.44)
-        lat, lon = CEDEAO_CILSS[pays][region]
+        lat, lon = 0.0, 0.0  # Coordonnées fictives pour l'exemple, on peut intégrer API si souhaité
 
+        # Statut et prédiction IA
         if imc < 14:
             statut = "MAS"
-            prediction = ("Malnutrition Aiguë Sévère. Suivi médical urgent requis. "
-                          "Alimentation thérapeutique recommandée.")
+            prediction = "Malnutrition Aiguë Sévère"
+            conseils = "Suivi médical urgent requis, alimentation thérapeutique."
         elif imc < 16:
             statut = "MAM"
-            prediction = ("Malnutrition Aiguë Modérée. Suivi nutritionnel conseillé. "
-                          "Renforcer l'alimentation avec nutriments clés.")
+            prediction = "Malnutrition Aiguë Modérée"
+            conseils = "Suivi nutritionnel conseillé, renforcer alimentation."
         else:
             statut = "Normal"
-            prediction = ("État nutritionnel acceptable. Maintenir alimentation équilibrée.")
+            prediction = "Normal"
+            conseils = "État nutritionnel acceptable, maintenir alimentation équilibrée."
 
+        # Ajout au DataFrame
         st.session_state.df_enfants.loc[len(st.session_state.df_enfants)] = [
-            nom, prenom, date_naissance, date_enregistrement, poids, taille, pb_mm, oedeme, quartier,
-            pays, region, round(imc,2), statut, prediction, prediction, age, lat, lon
+            nom, prenom, date_naissance, date_enregistrement, poids, taille, pb_mm,
+            oedeme, quartier, pays, region, round(imc,2), statut, prediction, conseils,
+            age, lat, lon
         ]
-        st.success(f"Enregistrement effectué pour {prenom} {nom}.")
-        if statut != "Normal":
-            st.warning(f"Alerte : {prenom} {nom} présente {statut}")
-        st.info(f"Conseils: {prediction}")
 
 # -------------------------------
-# Affichage des données
+# Affichage prédiction & conseils
+# -------------------------------
+if submitted:
+    st.subheader("Prédictions et conseils IA")
+    st.write(f"Enfant : {prenom} {nom}")
+    st.write(f"Statut nutritionnel : **{statut}**")
+    st.write(f"Prédiction IA : {prediction}")
+    st.write(f"Conseils : {conseils}")
+    if statut != "Normal":
+        st.warning(f"Alerte : {prenom} {nom} présente {statut}")
+
+# -------------------------------
+# Affichage tableau et carte
 # -------------------------------
 if not st.session_state.df_enfants.empty:
     st.subheader("Données enregistrées")
@@ -140,7 +167,7 @@ if not st.session_state.df_enfants.empty:
             popup=f"{row['Prenom']} {row['Nom']} - IMC {row['IMC']} - {row['Statut']}"
         ).add_to(carte)
     st_folium(carte, width=700, height=450)
-    
+
     # Export CSV
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button("Télécharger CSV", data=csv, file_name="enfants.csv", mime="text/csv")
@@ -151,7 +178,10 @@ if not st.session_state.df_enfants.empty:
     c.drawString(50, 800, "Rapport ANISAN")
     y = 750
     for i, row in df.iterrows():
-        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} | {row['Pays']} - {row['Region']} | Quartier: {row['Quartier/Commune']} | Age: {row['Age']} mois | IMC: {row['IMC']} | Statut: {row['Statut']} | PB: {row['PB_mm']} mm | Conseils: {row['Conseils']}")
+        c.drawString(50, y, f"{row['Prenom']} {row['Nom']} | {row['Pays']} - {row['Region']} | "
+                             f"Quartier: {row['Quartier/Commune']} | Age: {row['Age']} mois | "
+                             f"IMC: {row['IMC']} | Statut: {row['Statut']} | PB: {row['PB_mm']} mm | "
+                             f"Conseils: {row['Conseils']}")
         y -= 20
         if y < 50:
             c.showPage()
